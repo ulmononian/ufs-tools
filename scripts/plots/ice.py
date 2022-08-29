@@ -16,7 +16,7 @@ import matplotlib.colors as colors
 from matplotlib.colors import ListedColormap
 import cmocean.cm as cmo
 import numpy.ma as ma
-from cartopy.examples.waves import sample_data
+#from cartopy.examples.waves import sample_data
 
 class MidpointNormalize(colors.Normalize):
     def __init__(self, vmin=None, vmax=None, midpoint=None, clip=False):
@@ -116,13 +116,14 @@ def set_projection_cmap(projection, cmap_in):
     if cmap_in == "cmocean.cm.thermal": cmap_=cmocean.cm.thermal
     if cmap_in == "cmo.ice": cmap_=cmo.ice
     return crs, cmap_
+  #csst= ax.pcolormesh(lon,lat,field0, norm=DivergingNorm(0), cmap=plt.cm.seismic, transform=ccrs.PlateCarree(),vmin=level[0],vmax=level[2])
 
 def draw_colorbar(ax, cs, d, fig):
     cbar_label = d["cbar_label"]
     cbar_label_font = d["cbar_label_font"]
     cax,kw1=matplotlib.colorbar.make_axes([ax],location='bottom',shrink=0.6, pad=0.05, fraction=0.1)
     cbar=fig.colorbar(cs,cax=cax,**kw1)
-    cbar.ax.tick_params(labelsize=cbar_label_font)
+    #cbar.ax.tick_params(labelsize=small)
     cbar.set_label(cbar_label,size=6)
     
 def draw_subplots(lat, lon, field, d, fig):
@@ -146,37 +147,56 @@ def draw_subplots(lat, lon, field, d, fig):
 
     return ax, cs
 
-def get_geofield(grid,fname,d,fieldname,field_dim):
-    yh_var    = d["grid_vars"][0]
-    xh_var    = d["grid_vars"][1]
-    grid_type = d["grid_vars"][2]
-    nc = xr.open_dataset(grid,decode_times=False)
-    yh = nc[yh_var][:]; xh = nc[xh_var][:]
-    nc.close()
-    if grid_type == '1darray': [xh,yh]= np.meshgrid(xh, yh)
+def get_geofield(fname,d,fieldname,field_dim):
+    #yh_var    = d["grid_vars"][0]
+    #xh_var    = d["grid_vars"][1]
+    #grid_type = d["grid_vars"][2]
+    #nc = xr.open_dataset(grid,decode_times=False)
+    #yh = nc[yh_var][:]; xh = nc[xh_var][:]
+    #nc.close()
+    print(fname)
+    grid = "ocn_2021_03_22_09.nc"
+    nc= xr.open_dataset(grid,decode_times=False); lat= nc['yh']; lon= nc['xh']
+    [xh,yh]= lon, lat
+    print(xh,yh)
+    #nc= xr.open_dataset(files[0],decode_times=False)
+    #yh= nc['nj'][0,:]
+    #xh= nc['ni'][0,:]
+    #[xh,yh]= np.meshgrid(xh,yh)
+    #if grid_type == '1darray': [xh,yh]= np.meshgrid(xh, yh)
 
     #nc=xr.open_dataset(fname,decode_times=False); field_= nc[fieldname][:]
 
-    file2read = netCDF4.Dataset(fname,'r')
-    field_ = file2read.variables[fieldname]      
-
-    file1_ = netCDF4.Dataset('./control/iced.2021-03-23-21600.nc','r')
-    field_ = file1_.variables[fieldname]
-    field1 = (field_[0,:,:]+field_[1,:,:]+field_[2,:,:]+field_[3,:,:]+field_[4,:,:])/5.
-    mask_ = file1_.variables['iceumask']
-    file3_ = netCDF4.Dataset('./butter/iced.2021-03-23-21600.nc','r')
-    field_ = file3_.variables[fieldname]
-    field3 = (field_[0,:,:]+field_[1,:,:]+field_[2,:,:]+field_[3,:,:]+field_[4,:,:])/5.
+    #file2read = netCDF4.Dataset(fname,'r')
+    #field_ = file2read.variables[fieldname]      
+    nc_ice = xr.open_mfdataset(fname, decode_times=False)
+    #field = np.ma.masked_invalid(nc_ice[fieldname])
+    ice_file = netCDF4.Dataset('./iced.2021-03-23-43200.nc','r')
+    print(fieldname)
+    field = ice_file.variables[fieldname]
+    print(field)
+    field = (field[0,:,:]+field[1,:,:]+field[2,:,:]+field[3,:,:]+field[4,:,:])
+    #print(np.shape(field))
+    #print(field[0,50:60,300:320])
+    #field = ice[0,1,:,:]+ice[0,1,:,:]+ice[0,2,:,:]+ice[0,3,:,:]+ice[0,4,:,:]
+    #file1_ = netCDF4.Dataset('./iced.2021-03-23-43200.nc','r')
+    #field_ = file1_.variables[fieldname]
+    #field1 = (field_[0,:,:]+field_[1,:,:]+field_[2,:,:]+field_[3,:,:]+field_[4,:,:])/5.
+    #mask_ = file1_.variables['iceumask']
+    #mask_ = file2read.variables['iceumask']
+    #file3_ = netCDF4.Dataset('./iced.2021-03-23-75600.nc','r')
+    #field_ = file3_.variables[fieldname]
+    #field3 = (field_[0,:,:]+field_[1,:,:]+field_[2,:,:]+field_[3,:,:]+field_[4,:,:])/5.
     
-    if field_dim=="3d":
-        field = field3-field1
-        field = np.ma.masked_where(mask_ == 0., field)
-    else:
-        #field = field_
-        field = field_[0,5,:,:]
-        field = field+field_[0,6,:,:]
-        field = field+field_[0,7,:,:]
-        field = field/3.
+    #if field_dim=="2d":
+    #    field = field3-field1
+    #    field = np.ma.masked_where(mask_ == 0., field)
+    #else:
+    #    #field = field_
+    #    field = field_[0,5,:,:]
+    #    field = field+field_[0,6,:,:]
+    #    field = field+field_[0,7,:,:]
+    #    field = field/3.
     nc.close()
     return yh,xh,field
 
@@ -191,7 +211,7 @@ if __name__ == '__main__':
         datas = json.load(files)
         
     for d in datas:
-        plot_type = d["plot_type"]
+        #plot_type = d["plot_type"]
         fname     = d["files"]
         grid      = d["grid"]
         fontsize  = d["fontsize"]
@@ -202,17 +222,17 @@ if __name__ == '__main__':
         fieldname = d["fields"]
         fieldim   = d["field_dim"]
         
-        yh,xh,field = get_geofield(grid,fname[0],d,fieldname[0],fieldim[0])
+        yh,xh,field = get_geofield(fname[0],d,fieldname[0],fieldim[0])
         #if 'field_scales' in d:
         #    field=field/d["field_scales"][0]
         #if 'field_mask' in d: field= ma.masked_greater(field, 1.0)
 
-        if plot_type=="diff":
-            yh_,xh_,field1=get_geofield(grid,fname[1],d,fieldname[1],fieldim[1])
-            if 'field_scales' in d:
-                field1=field1/d["field_scales"][1]
-            if 'field_mask' in d: field1=ma.masked_greater(field1,1.0)
-            field=np.array(field)-np.array(field1)
+        #if plot_type=="diff":
+        #    yh_,xh_,field1=get_geofield(grid,fname[1],d,fieldname[1],fieldim[1])
+        #    if 'field_scales' in d:
+        #        field1=field1/d["field_scales"][1]
+        #    if 'field_mask' in d: field1=ma.masked_greater(field1,1.0)
+        #    field=np.array(field)-np.array(field1)
 
 
         #fig = plt.figure(figsize=(8, 4))
@@ -232,7 +252,7 @@ if __name__ == '__main__':
         ax   = plt.subplot(111, projection=crs)
         ax,trans = draw_map_subplots(ax,d)
 
-        #cs = ax.contourf(xh,yh,field,norm=MidpointNormalize(midpoint=0.),cmap=cmap_,levels=levels,vmin=min_,vmax=max_,transform=ccrs.PlateCarree())
+        cs = ax.contourf(xh,yh,field,norm=MidpointNormalize(midpoint=0.),cmap=cmo.ice,levels=np.arange(0,0.01,1),vmin=min_,vmax=max_,transform=ccrs.PlateCarree())
         #cs = ax.contourf(xh,yh,field,norm=MidpointNormalize(midpoint=0.),cmap=cmap_,levels=levels,vmin=min_,vmax=max_,transform=ccrs.PlateCarree())
 
         #fl=field.tolist()
@@ -244,7 +264,7 @@ if __name__ == '__main__':
         
         stats='mean:'+str(np.mean(field))+'\n std:'+str(np.std(field))
         
-        cs = ax.pcolormesh(xh,yh,field,norm=MidpointNormalize(midpoint=0.),cmap=cmap_,vmin=min_,vmax=max_,transform=ccrs.PlateCarree())
+        #cs = ax.pcolormesh(xh,yh,field,norm=MidpointNormalize(midpoint=0.),cmap=cmap_,vmin=min_,vmax=max_,transform=ccrs.PlateCarree())
         #cs = ax.pcolormesh(xh,yh,field,transform=ccrs.PlateCarree())
         #if projection == 'PolarSouth' or projection == 'PolarNorth':
         #    cs = ax.contour(lon,lat,field,levels=[0.15],vmin=min_,vmax=max_,colors='y',linewidths=2.0,transform=trans)
