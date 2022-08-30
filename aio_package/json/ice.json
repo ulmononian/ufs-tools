@@ -6,7 +6,7 @@
 	"ice_file":["iced.2021-03-22-75600.nc"],
 	"fields":["aicen"],
 	"grid":"ocn_2021_03_22_09.nc",
-	"projection":"PolarNorth",
+	"projection":"PolarSouth",
 	"titles":["ugrd: 200mb"],
 	"title_font":10,
 	"field_range":[-0.00001,0.000005,0.00001],
